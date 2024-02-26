@@ -1,4 +1,9 @@
 
 ```{r}
+data_size <- 20
+x <- runif(data_size)
+error <- rnorm(data_size)
+y <- x + error
 
+plot(x, y)
 ```
