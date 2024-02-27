@@ -1,4 +1,38 @@
 
+
 ```{r}
+# set values
+n <- 100
+observation_range <- seq(10,100, by = 20)
+predictors_range <- seq(2,50, by = 3)
+r2_values <- matrix(0, nrow = length(observation_range), ncol = length(predictors_range))
+rownames(r2_values) <- observation_range
+colnames(r2_values) <- predictors_range
+
+# create data, fit model, calculate r2 for 1 simulation
+simulation <- function(observations, predictors) {
+  # create data
+  x <- matrix(rnorm(observations*predictors), nrow = observations)
+  true_predictors <- rnorm(predictors)
+  noise = 0.5 * rnorm(observations)
+  y <- x %*% true_predictors + noise
+    
+  # fit model
+  model <- lm(y~x)
+  # return r2 score
+  return (summary(model)$r.squared)
+  
+}
+
+# monte carlo simulations for different observation and predictor values
+for (i in seq_along(observation_range)){
+  for (j in seq_along(predictors_range)){
+
+    r2_values[i,j] <- mean(replicate(n, simulation( observation_range[i] , predictors_range[j])))
+  }
+}
+
+print(r2_values)
 
 ```
+
