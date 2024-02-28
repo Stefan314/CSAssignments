@@ -33,6 +33,175 @@ for (i in seq_along(observation_range)){
 }
 
 print(r2_values)
+```
+
+```{r}
+
+# ChatGPT helped create the code for this illustration. 
+# Set up the layout for four plots
+par(mfrow = c(2, 2))
+
+# Iterate over the rows of r2_values matrix
+for (i in 1:nrow(r2_values)) {
+    # Create a plot for each row
+    plot(predictors_range, r2_values[i, ],
+         type = "b",  
+         main = paste("Observations:", observation_range[i]),
+         xlab = "Number of Predictors",
+         ylab = "R^2 Score",
+         pch = 16,  
+         col = "blue",  
+         ylim = range(r2_values)  
+    )
+}
+
+# Reset the layout to default
+par(mfrow = c(1, 1))
+
+
+
+```
+```{r}
+
+# Get the file loaded in
+df <- read.csv("Houses dataset.csv")
+
+# Because we want to keep this as close to the simulation as possible we only use the integer columns
+int_columns <- sapply(df, function(x) all(suppressWarnings(!any(is.na(as.numeric(as.character(x)))))))
+
+# Pick those columns
+df <- df[, int_columns]
+
+# Change them into integers
+df[] <- lapply(df, function(x) as.integer(as.character(x)))
+
+# Convert to matrix so we can reuse the previous code 
+data_matrix <- as.matrix(df)
+
+# set values
+observation_range <- seq(10,100, by = 20)
+predictors_range <- seq(2,34, by = 3)
+r2_values_houses <- matrix(0, nrow = length(observation_range), ncol = length(predictors_range))
+rownames(r2_values_houses) <- observation_range
+colnames(r2_values_houses) <- predictors_range
+
+# pick data, fit model, calculate r2 for 1 simulation
+simulation <- function(observations, predictors) {
+  # pick data
+  
+  y <- data_matrix[,2]
+  x <- data_matrix[,-2]
+  
+  # Now we have to take only the amount of data from the dataset that we need
+  x <- x[1:observations, 1:predictors]
+  y <- y[1:observations]
+
+  # fit model
+  model <- lm(y~x)
+  # return r2 score
+  return (summary(model)$r.squared)
+  
+}
+
+# simulations for different observation and predictor values
+for (i in seq_along(observation_range)){
+  for (j in seq_along(predictors_range)){
+
+    r2_values_houses[i,j] <- simulation( observation_range[i] , predictors_range[j])
+  }
+}
+
+print(r2_values_houses)
 
 ```
 
+```{r}
+
+# ChatGPT helped create the code for this illustration. 
+# Set up the layout 
+par(mfrow = c(2, 2))
+
+# Iterate over the rows of r2_values_houses matrix
+for (i in 1:nrow(r2_values_houses)) {
+    # Create a plot for each row
+    plot(predictors_range, r2_values_houses[i, ],
+         type = "b",  
+         main = paste("Observations:", observation_range[i]),
+         xlab = "Number of Predictors",
+         ylab = "R^2 Score",
+         pch = 16,  
+         col = "blue",  
+         ylim = range(r2_values_houses)  
+    )
+}
+
+par(mfrow = c(1, 1))
+
+
+
+```
+
+```{r}
+# Now we apply our fix found in Step 3 on the same dataset
+
+# set values
+observation_range <- seq(10,100, by = 20)
+predictors_range <- seq(2,34, by = 3)
+r2_values_houses_wherry <- matrix(0, nrow = length(observation_range), ncol = length(predictors_range))
+rownames(r2_values_houses_wherry) <- observation_range
+colnames(r2_values_houses_wherry) <- predictors_range
+
+# pick data, fit model, calculate r2 for 1 simulation
+simulation <- function(observations, predictors) {
+  # pick data
+  
+  y <- data_matrix[,2]
+  x <- data_matrix[,-2]
+
+  # Now we have to take only the amount of data from the dataset that we need
+  x <- x[1:observations, 1:predictors]
+  y <- y[1:observations]
+
+  # fit model
+  model <- lm(y~x)
+  # return r2 score based on formula 5
+  
+  return (1-(observations-1)/(observations-predictors)*(1-(summary(model)$r.squared)))
+  
+}
+
+# simulations for different observation and predictor values
+for (i in seq_along(observation_range)){
+  for (j in seq_along(predictors_range)){
+
+    r2_values_houses_wherry[i,j] <- simulation( observation_range[i] , predictors_range[j])
+  }
+}
+
+print(r2_values_houses_wherry)
+
+```
+
+```{r}
+
+# ChatGPT helped create the code for this illustration. 
+# Set up the layout 
+par(mfrow = c(2, 2))
+
+# Iterate over the rows of r2_values_houses_wherry matrix
+for (i in 1:nrow(r2_values_houses_wherry)) {
+    # Create a plot for each row
+    plot(predictors_range, r2_values_houses_wherry[i, ],
+         type = "b",  
+         main = paste("Observations:", observation_range[i]),
+         xlab = "Number of Predictors",
+         ylab = "R^2 Score",
+         pch = 16,  
+         col = "blue",  
+         ylim = range(r2_values_houses_wherry)  
+    )
+}
+
+par(mfrow = c(1, 1))
+
+```
