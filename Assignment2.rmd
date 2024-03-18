@@ -1,2 +1,47 @@
 Paper: https://faculty.marshall.usc.edu/yingying-fan/publications/JRSSB-CFJL18.pdf
+```{r}
+library(MASS) # for mvrnorm function
+library(knockoff) # for creating knockoff variables
 
+# Function to generate data and calculate power and FDR
+simulate_data_and_calculate_metrics <- function(n, p, rho, num_nonzero_coef = 60, effect_size = 3.5, target_FDR = 0.1, num_replications = 200) {
+  power_results <- numeric(length(rho))
+  FDR_results <- numeric(length(rho))
+
+  for (i in seq_along(rho)) {
+    # Generate design matrix
+    Sigma <- toeplitz(rho[i]^(0:(p-1)))
+    X <- mvrnorm(n, mu = rep(0, p), Sigma = Sigma)
+
+    # Generate response variable
+    beta <- c(rep(0, p - num_nonzero_coef), effect_size * sign(runif(num_nonzero_coef) - 0.5))
+    y <- rbinom(n, 1, plogis(X %*% beta))
+
+    # Create knockoffs
+    knockoffs <- knockoff.filter(X, y)
+
+    # Fit linear model with knockoffs and compute FDR and power
+    selected <- knockoff:::fdr_lsm(knockoffs$X, knockoffs$y, knockoffs$X.k)
+    FDR_results[i] <- mean(selected != 0)
+    true_positives <- sum(selected[1:num_nonzero_coef] != 0)
+    power_results[i] <- true_positives / num_nonzero_coef
+  }
+
+  return(list(power = power_results, FDR = FDR_results))
+}
+
+# Parameters
+n <- 3000
+p <- 1000
+rho_values <- seq(0.1, 0.9, by = 0.1)
+
+# Simulate data and calculate metrics
+results <- simulate_data_and_calculate_metrics(n, p, rho_values)
+
+# Plot power and FDR
+par(mfrow = c(1, 2))
+plot(rho_values, results$power, type = "b", main = "Power", xlab = "Correlation coefficient (rho)", ylab = "Power", ylim = c(0, 1))
+plot(rho_values, results$FDR, type = "b", main = "FDR (target 10%)", xlab = "Correlation coefficient (rho)", ylab = "FDR", ylim = c(0, 0.2))
+abline(h = 0.1, col = "red", lty = 2) # Target FDR line
+
+```
