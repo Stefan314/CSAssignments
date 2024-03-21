@@ -1,4 +1,46 @@
 Paper: https://arxiv.org/pdf/1610.02351.pdf
 ```{r}
+# Required library
+library(mvtnorm)
 
+simulate_logistic <- function(number_of_observations, number_of_dims, intercept, coefficients) {
+  design_matrix <- matrix(rnorm(number_of_observations * number_of_dims), ncol = number_of_dims)
+
+  # Simulates the response variable for logistic regression
+  # Calculating linear predictor
+  predictor <- design_matrix %*% coefficients + intercept
+  # Transforms the predictor into probabilities using the logistic function
+  probabilities <- 1 / (1 + exp(-predictor))
+  # Each outcome of this binary response variable represents one observation
+  response_variable <- rbinom(number_of_observations, 1, probabilities)
+
+  logistic_fit <- glm(response_variable ~ design_matrix, family = binomial(link = "logit"))
+
+  p_values <- summary(logistic_fit)$coefficients[, 4][-1]
+
+  return(p_values)
+}
+
+# Setting experimentation parameters
+number_of_observations <- 500
+number_of_dimensions <- 200
+# Needs to be 10000 in total (10000 / 200 = 50)
+replications <- 50
+
+# Setting parameters of the regression
+intercept <- 0
+null_coefficients <- rep(0, number_of_dimensions)
+nonzero_coefficients <- c(rep(0, 19), 0.08, rep(0, number_of_dimensions - 20))
+
+set.seed(1)
+p_values_global_null <- replicate(replications, simulate_logistic(number_of_observations, number_of_dimensions, intercept, null_coefficients))
+p_values_nonzero <- replicate(replications, simulate_logistic(number_of_observations, number_of_dimensions, intercept, nonzero_coefficients))
+
+# Set-up histogram plots of p-values
+par(mfrow = c(1, 2))
+
+```
+```{r}
+hist(p_values_global_null, ylim = c(0, 2000), breaks = 20, main = "Global Null, AR(1) Design", xlab = "P-Values", ylab = "Count", col = "lightblue", border = "white")
+hist(p_values_nonzero, ylim = c(0, 2000), breaks = 20, main = "20 Nonzero Coefficients, AR(1) Design", xlab = "P-Values", ylab = "Count", col = "lightblue", border = "white")
 ```
