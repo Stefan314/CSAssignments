@@ -2,6 +2,7 @@ Paper: https://arxiv.org/pdf/1610.02351.pdf
 ```{r}
 # Required library
 library(mvtnorm)
+library(Rlab)
 
 simulate_logistic <- function(number_of_observations, number_of_dims, intercept, coefficients) {
   design_matrix <- matrix(rnorm(number_of_observations * number_of_dims), ncol = number_of_dims)
@@ -12,7 +13,7 @@ simulate_logistic <- function(number_of_observations, number_of_dims, intercept,
   # Transforms the predictor into probabilities using the logistic function
   probabilities <- 1 / (1 + exp(-predictor))
   # Each outcome of this binary response variable represents one observation
-  response_variable <- rbinom(number_of_observations, 1, probabilities)
+  response_variable <- rbern(number_of_observations, probabilities)
 
   logistic_fit <- glm(response_variable ~ design_matrix, family = binomial(link = "logit"))
 
