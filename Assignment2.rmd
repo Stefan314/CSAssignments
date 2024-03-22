@@ -3,6 +3,7 @@ Paper: https://arxiv.org/pdf/1610.02351.pdf
 # Required library
 library(mvtnorm)
 library(Rlab)
+library(knockoff)
 
 simulate_logistic <- function(number_of_observations, number_of_dims, intercept, coefficients) {
   design_matrix <- matrix(rnorm(number_of_observations * number_of_dims), ncol = number_of_dims)
@@ -19,6 +20,8 @@ simulate_logistic <- function(number_of_observations, number_of_dims, intercept,
 
   p_values <- summary(logistic_fit)$coefficients[, 4][-1]
 
+  knockoffs <- knockoff.filter(design_matrix, response_variable)
+
   return(p_values)
 }
 
@@ -26,7 +29,7 @@ simulate_logistic <- function(number_of_observations, number_of_dims, intercept,
 number_of_observations <- 500
 number_of_dimensions <- 200
 # Needs to be 10000 in total (10000 / 200 = 50)
-replications <- 50
+replications <- 1
 
 # Setting parameters of the regression
 intercept <- 0
@@ -37,6 +40,12 @@ set.seed(1)
 p_values_global_null <- replicate(replications, simulate_logistic(number_of_observations, number_of_dimensions, intercept, null_coefficients))
 p_values_nonzero <- replicate(replications, simulate_logistic(number_of_observations, number_of_dimensions, intercept, nonzero_coefficients))
 
+
+X_knockoff <- cbind(X, X)
+knockoffs <- knockoff.filter(X_knockoff, statistic = "equicorrelated", fdr = 0.1)
+hist(knockoffs, breaks = 20, main = "Filtered p-values", xlab = "p-values", col = "lightblue", border = "white")
+
+
 # Set-up histogram plots of p-values
 par(mfrow = c(1, 2))
 
@@ -44,4 +53,35 @@ par(mfrow = c(1, 2))
 ```{r}
 hist(p_values_global_null, ylim = c(0, 2000), breaks = 20, main = "Global Null, AR(1) Design", xlab = "P-Values", ylab = "Count", col = "lightblue", border = "white")
 hist(p_values_nonzero, ylim = c(0, 2000), breaks = 20, main = "20 Nonzero Coefficients, AR(1) Design", xlab = "P-Values", ylab = "Count", col = "lightblue", border = "white")
+```
+```{r}
+# Problem parameters
+n = 200         # number of observations
+p = 200         # number of variables
+k = 60           # number of variables with nonzero coefficients
+amplitude = 7.5  # signal amplitude (for noise level = 1)
+
+# Generate the variables from a multivariate normal distribution
+mu = rep(0,p)
+rho = 0.10
+Sigma = toeplitz(rho^(0:(p-1)))
+X = matrix(rnorm(n*p),n) %*% chol(Sigma)
+
+# Generate the response from a logistic model and encode it as a factor.
+nonzero = sample(p, k)
+beta = amplitude * (1:p %in% nonzero) / sqrt(n)
+invlogit = function(x) exp(x) / (1+exp(x))
+y.sample = function(x) rbinom(n, prob=invlogit(x %*% beta), size=1)
+y = factor(y.sample(X))
+# Basic usage with default arguments
+result = knockoff.filter(X, y)
+print(result$selected)
+```
+```{r}
+X_k <- create.gaussian(X, mu, Sigma)
+W <- stat.glmnet_coefdiff(X, X_k, y, nfolds=10, family="binomial")
+thres <- knockoff.threshold(W, fdr=0.2, offset=1)
+selected <- which(W >= thres)
+fdp <- function(selected) sum(beta[selected] == 0) / max(1, length(selected))
+fdp(selected)
 ```
